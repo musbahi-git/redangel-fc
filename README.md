@@ -1,33 +1,95 @@
-# STARLIGHT
-STARLIGHT is an all-in-one flight computer with all sorts of features useful to have in a model rocket flight computer.
-You can read more about the board [here.](https://shop.circuitwizardry.com/products/starlight)
+## Simplified Wiring Instructions:
+1. Power Supplies:
 
-This repository contains all the code necessary to interface with the sensors on STARLIGHT.
+    Connect the power supply to the Raspberry Pi Zero.
+    Connect the separate power supply to the STARLIGHT flight computer.
 
-Check out `example.py` for a quick start on reading sensors on the board, and `starlight.py` for the raw code that talks to the two sensors!
+2. Connecting the Raspberry Pi Zero to the Adafruit Motor Shield v2:
 
-# Getting Started
-Now, you may be asking – How do I actually write code for this board? There are loads of tutorials for other boards on the market, but STARLIGHT is somewhat unique in a sense. The act of programming it will be the same, but the features that come pre-packaged with the board trump many other current boards on the market.
+    The Adafruit Motor Shield v2 communicates via I2C.
+    Connect the SDA (data line) on the Raspberry Pi GPIO2 (pin 3) to SDA on the Motor Shield.
+    Connect the SCL (clock line) on the Raspberry Pi GPIO3 (pin 5) to SCL on the Motor Shield.
+    Connect the GND on the Raspberry Pi GPIO6 (pin 9) to GND on the Motor Shield.
+    Connect the 3.3V or 5V power pin on the Raspberry Pi to the VIN pin on the Motor Shield (if the Motor Shield requires it; usually it is powered separately).
 
-[Download the STARLIGHT UF2 for this board. This board uses a custom UF2 file, you can download it here.
-](https://circuitwizardry.com/wp-content/uploads/2023/09/starlight_micropython_9_10_2022_revB.uf2)
+3. Connecting the DC Motor to the Motor Shield:
 
-Install Thonny IDE. This is how you’re going to write and upload code to the board. You can find a link to download it here.
-Plug in your board: Drag the .uf2 file into the USB mass storage device that the board boots into by default, give it some time to copy over. If this operation succeeds, the board will reboot and you will no longer see it as a mass storage device.
+    Connect the DC motor wires to the terminal block M1 (or M2, M3, M4 depending on your motor shield's configuration) on the Motor Shield.
 
-Select the MicroPython interpreter. This can be done in the bottom right of Thonny IDE.
+4. Connecting the GPS Module to the Raspberry Pi Zero:
 
-If you followed the above steps, you should see a MicroPython console in Thonny IDE!
+    The GPS module usually communicates via UART.
+    Connect the GPS TX (transmit) pin to the Raspberry Pi RX (receive) pin GPIO15 (pin 10).
+    Connect the GPS RX (receive) pin to the Raspberry Pi TX (transmit) pin GPIO14 (pin 8).
+    Connect the GND pin on the GPS to a GND pin on the Raspberry Pi.
+    Connect the VCC pin on the GPS to a 3.3V or 5V pin on the Raspberry Pi (depending on your GPS module's voltage requirements).
 
-Print “Hello World”! In your MicroPython console, type `print(“Hello World!”)` and press ENTER. If everything is working, you should get a response!
+5. Connecting the Camera Module to the Raspberry Pi Zero:
 
-Now turn on the on-board LED. Paste this code into the console, and press ENTER. You should see the LED on the STARLIGHT board light up!
-```python
-from machine import Pin
-led = Pin(24, Pin.OUT)
-led.value(1)
-```
-In order to run code from a file, simply paste the code into the text editor and click the green ▶️ run button at the top of the IDE. You can also save files directly to the RP2040 by selecting “Raspberry Pi Pico” when saving.
+    Connect the camera module to the camera interface (CSI) on the Raspberry Pi Zero using the camera ribbon cable.
 
-# Reading Sensors
-In order to read sensors and begin using STARLIGHT to its fullest, check out `example.py`. If you're interested in sensor fusion, check out the `fusion` directory.
+6. Connecting the STARLIGHT Flight Computer to the Raspberry Pi Zero:
+
+    The STARLIGHT flight computer will send accelerometer data to the Raspberry Pi.
+    Identify the communication protocol (e.g., UART, I2C, SPI) used by the flight computer to send data.
+        For UART:
+            Connect the TX pin of the flight computer to the RX pin GPIO15 (pin 10) on the Raspberry Pi.
+            Connect the RX pin of the flight computer to the TX pin GPIO14 (pin 8) on the Raspberry Pi.
+        For I2C:
+            Connect the SDA pin of the flight computer to SDA on the Raspberry Pi GPIO2 (pin 3).
+            Connect the SCL pin of the flight computer to SCL on the Raspberry Pi GPIO3 (pin 5).
+
+## Electronics Initialisation 
+
+### Complete manufacturer set up for flight computer
+[STARLIGHT_README.md]
+
+
+### Raspberry Pi Commands 
+
+sudo apt-get update
+sudo apt-get upgrade
+
+sudo apt-get install python3-pip
+
+pip3 install Adafruit-MotorHAT
+
+sudo raspi-config
+   
+    >>> To enable I2C on your Raspberry Pi, you can use the raspi-config utility. Here are the steps:
+
+        Open a terminal on your Raspberry Pi.
+
+        Enter the following command to open the configuration utility:
+        'sudo raspi-config'
+            > Use the arrow keys to navigate to 5 Interfacing Options and press Enter.
+            Navigate to P5 I2C and press Enter.
+
+            When asked Would you like the ARM I2C interface to be enabled?, select <Yes> and press Enter.
+
+            You will see a message saying The ARM I2C interface is enabled. Press Enter to continue.
+
+            Finally, select <Finish> to exit the configuration utility. 
+
+        'sudo reboot'
+        #### Confirms I2C is enabled. Could be useful.
+        'ls /dev/*i2c*'
+
+
+sudo apt-get install python3-smbus
+
+---
+
+## Pre-Launch Sequence
+
+### Starlight-RedAngel Calibration Script
+
+- Place the STARLIGHT board on a flat and level surface.
+- Run RedStartup1.py
+    Code walkthrough:
+    - Take multiple readings from the accelerometer while the board is at rest.
+    - Calculate the average of these readings. This will be the bias.
+    - Subtract the bias from future accelerometer readings to correct them.
+
+### Run Calibration before continuing start up sequence.
+
