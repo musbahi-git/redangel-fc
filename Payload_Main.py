@@ -1,56 +1,49 @@
-# Import the necessary libraries
-from adafruit_motorkit import MotorKit
+import time
 import smbus
-import math
+from Adafruit_MotorHAT import Adafruit_MotorHAT, Adafruit_DCMotor
 
-# Initialize the MotorKit object
-kit = MotorKit()
+# Create a default object, no changes to I2C address or frequency
+mh = Adafruit_MotorHAT(addr=0x60)
 
-# Initialize the I2C bus
+# Create a DC motor object.
+# The motor is connected to port M1 (change this to the port where your motor is connected).
+motor = mh.getMotor(1)
+
+# Set the speed of the motor (0 is off, 255 is max speed).
+motor.setSpeed(150)
+
+# GY-521 module constants
+GY521_ADDRESS = 0x68
+PWR_MGMT_1 = 0x6B
+ACCEL_XOUT_H = 0x3B
+
+# Initialize the bus and the sensor.
 bus = smbus.SMBus(1)
+bus.write_byte_data(GY521_ADDRESS, PWR_MGMT_1, 0)
 
-# This is the address of the GY-521 sensor
-address = 0x68
+def read_word(sensor_address, register):
+    high = bus.read_byte_data(sensor_address, register)
+    low = bus.read_byte_data(sensor_address, register + 1)
+    value = (high << 8) + low
+    return value - 65536 if value >= 0x8000 else value
 
-# Wake up the GY-521 sensor
-bus.write_byte_data(address, 0x6b, 0)
+try:
+    while True:
+        # Read the accelerometer data.
+        accel_x = read_word(GY521_ADDRESS, ACCEL_XOUT_H)
 
-# Function to read raw data from accelerometer
-def read_raw_data(addr):
-    high = bus.read_byte_data(address, addr)
-    low = bus.read_byte_data(address, addr+1)
-    
-    # Concatenate higher and lower value
-    value = ((high << 8) | low)
-        
-    # Get signed value from raw 16-bit value
-    if(value > 32768):
-        value = value - 65536
-    return value
+        # Use the accelerometer data to control the motor.
+        if accel_x > 0:
+            motor.run(Adafruit_MotorHAT.FORWARD)
+        else:
+            motor.run(Adafruit_MotorHAT.BACKWARD)
 
-# Main loop
-while True:
-    # Read accelerometer data
-    acc_x = read_raw_data(0x3b)
-    acc_y = read_raw_data(0x3d)
-    acc_z = read_raw_data(0x3f)
+        # Adjust the speed based on the magnitude of the acceleration.
+        speed = min(int((abs(accel_x) / 16384.0) * 255), 255)
+        motor.setSpeed(speed)
 
-    # Get the absolute value of the x, y and z accelerometer readings
-    abs_acc_x = abs(acc_x)
-    abs_acc_y = abs(acc_y)
-    abs_acc_z = abs(acc_z)
+        time.sleep(0.1)
 
-    # Calculate the total acceleration
-    total_acc = abs_acc_x + abs_acc_y + abs_acc_z
-
-    # Normalize the total acceleration to a value between 0 and 1
-    # This will be used to set the motor speed
-    # Note: The value 16384 comes from the sensitivity of the GY-521 sensor for a range of +/-2g
-    # You may need to adjust this value depending on the sensitivity setting of your sensor
-    normalized_acc = total_acc / (3 * 16384)
-
-    # Determine the direction based on the sign of the x-axis accelerometer reading
-    direction = 1.0 if acc_x >= 0 else -1.0
-
-    # Set the motor speed and direction based on the normalized acceleration and direction
-    kit.motor1.throttle = direction * normalized_acc
+except KeyboardInterrupt:
+    # Release the motor on a KeyboardInterrupt.
+    motor.run(Adafruit_MotorHAT.RELEASE)
