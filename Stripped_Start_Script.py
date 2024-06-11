@@ -1,10 +1,12 @@
 import RPi.GPIO as GPIO
 import smbus
 import time
+import picamera
 
 # Setup for GPIO
 motor_pin = 18
 GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings
 GPIO.setup(motor_pin, GPIO.OUT)
 
 # Setup for MPU-6050
@@ -13,6 +15,12 @@ mpu_address = 0x68
 
 # Initialize MPU-6050
 bus.write_byte_data(mpu_address, 0x6B, 0)  # Wake up the MPU-6050
+
+# Initialize PiCamera and start recording
+camera = picamera.PiCamera()
+camera.resolution = (640, 480)  # Set the resolution of the video recording
+camera.framerate = 30  # Set the framerate of the video recording
+camera.start_recording('/home/pi/video.h264')  # Start recording
 
 def read_gyro():
     gyro_xout = bus.read_byte_data(mpu_address, 0x43) << 8 | bus.read_byte_data(mpu_address, 0x44)
@@ -34,4 +42,5 @@ try:
         time.sleep(0.1)
 
 finally:
+    camera.stop_recording()  # Stop recording
     GPIO.cleanup()
